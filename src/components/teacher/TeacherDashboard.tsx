@@ -1,13 +1,15 @@
 import { useAuth } from "@/lib/auth-context";
-import { getComplaintsByTeacher, getSubjectById, getUserById } from "@/lib/mock-data";
+import { useComplaints } from "@/hooks/use-data";
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 export default function TeacherDashboard() {
   const { user } = useAuth();
-  if (!user) return null;
+  const { data: complaints = [], isLoading } = useComplaints({ teacherId: user?.id });
 
-  const complaints = getComplaintsByTeacher(user.id);
+  if (!user) return null;
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+
   const pending = complaints.filter(c => c.status === "pending").length;
   const accepted = complaints.filter(c => c.status === "accepted").length;
   const rejected = complaints.filter(c => c.status === "rejected").length;

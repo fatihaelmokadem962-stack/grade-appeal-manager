@@ -1,37 +1,73 @@
 import { useState } from "react";
-import { mockUsers, User } from "@/lib/mock-data";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useProfiles } from "@/hooks/use-data";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ManageStudents() {
   const { toast } = useToast();
-  const students = mockUsers.filter(u => u.role === "student");
+  const queryClient = useQueryClient();
+  const { data: students = [], isLoading } = useProfiles("student");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<User | null>(null);
-  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", cne: "", filiere: "" });
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", cne: "", filiere: "", password: "" });
+  const [saving, setSaving] = useState(false);
 
-  const filtered = students.filter(s =>
-    `${s.firstName} ${s.lastName} ${s.cne} ${s.email}`.toLowerCase().includes(search.toLowerCase())
+  const filtered = students.filter((s: any) =>
+    `${s.first_name} ${s.last_name} ${s.cne} ${s.email}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  const openAdd = () => { setEditing(null); setForm({ firstName: "", lastName: "", email: "", cne: "", filiere: "" }); setDialogOpen(true); };
-  const openEdit = (s: User) => { setEditing(s); setForm({ firstName: s.firstName, lastName: s.lastName, email: s.email, cne: s.cne || "", filiere: s.filiere || "" }); setDialogOpen(true); };
+  const openAdd = () => { setEditing(null); setForm({ firstName: "", lastName: "", email: "", cne: "", filiere: "", password: "password123" }); setDialogOpen(true); };
+  const openEdit = (s: any) => { setEditing(s); setForm({ firstName: s.first_name, lastName: s.last_name, email: s.email, cne: s.cne || "", filiere: s.filiere || "", password: "" }); setDialogOpen(true); };
 
-  const handleSave = () => {
-    toast({ title: editing ? "Étudiant modifié" : "Étudiant ajouté" });
+  const handleSave = async () => {
+    setSaving(true);
+    if (editing) {
+      const { error } = await supabase.from("profiles").update({
+        first_name: form.firstName,
+        last_name: form.lastName,
+        cne: form.cne || null,
+        filiere: form.filiere || null,
+      }).eq("user_id", editing.user_id);
+      if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      else toast({ title: "Étudiant modifié" });
+    } else {
+      // Create via edge function would be needed for creating auth users
+      // For now we use the supabase admin - but from client we can only sign up
+      const { error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password || "password123",
+        options: { data: { first_name: form.firstName, last_name: form.lastName, role: "student" } }
+      });
+      if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      else {
+        // Update profile with cne/filiere after creation
+        toast({ title: "Étudiant ajouté" });
+      }
+    }
+    queryClient.invalidateQueries({ queryKey: ["profiles"] });
     setDialogOpen(false);
+    setSaving(false);
   };
 
-  const handleDelete = (s: User) => {
-    toast({ title: "Étudiant supprimé", description: `${s.firstName} ${s.lastName}` });
+  const handleDelete = async (s: any) => {
+    const { error } = await supabase.from("profiles").delete().eq("user_id", s.user_id);
+    if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    else {
+      toast({ title: "Étudiant supprimé", description: `${s.first_name} ${s.last_name}` });
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    }
   };
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-6">
@@ -62,10 +98,10 @@ export default function ManageStudents() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(s => (
+              {filtered.map((s: any) => (
                 <TableRow key={s.id}>
                   <TableCell className="font-mono text-sm">{s.cne}</TableCell>
-                  <TableCell className="font-medium">{s.firstName} {s.lastName}</TableCell>
+                  <TableCell className="font-medium">{s.first_name} {s.last_name}</TableCell>
                   <TableCell className="text-muted-foreground">{s.email}</TableCell>
                   <TableCell>{s.filiere}</TableCell>
                   <TableCell>
@@ -89,15 +125,19 @@ export default function ManageStudents() {
               <div className="space-y-2"><Label>Prénom</Label><Input value={form.firstName} onChange={e => setForm({ ...form, firstName: e.target.value })} /></div>
               <div className="space-y-2"><Label>Nom</Label><Input value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} /></div>
             </div>
-            <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+            {!editing && <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>CNE</Label><Input value={form.cne} onChange={e => setForm({ ...form, cne: e.target.value })} /></div>
               <div className="space-y-2"><Label>Filière</Label><Input value={form.filiere} onChange={e => setForm({ ...form, filiere: e.target.value })} /></div>
             </div>
+            {!editing && <div className="space-y-2"><Label>Mot de passe</Label><Input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="password123" /></div>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Annuler</Button>
-            <Button onClick={handleSave}>{editing ? "Enregistrer" : "Ajouter"}</Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              {editing ? "Enregistrer" : "Ajouter"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

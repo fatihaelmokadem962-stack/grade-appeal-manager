@@ -1,14 +1,15 @@
 import { useAuth } from "@/lib/auth-context";
-import { getComplaintsByStudent, getSubjectById, getUserById } from "@/lib/mock-data";
+import { useComplaints } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, Clock, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import StatusBadge from "@/components/StatusBadge";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const { data: complaints = [], isLoading } = useComplaints({ studentId: user?.id });
+
   if (!user) return null;
 
-  const complaints = getComplaintsByStudent(user.id);
   const pending = complaints.filter(c => c.status === "pending").length;
   const accepted = complaints.filter(c => c.status === "accepted").length;
   const rejected = complaints.filter(c => c.status === "rejected").length;
@@ -19,6 +20,10 @@ export default function StudentDashboard() {
     { label: "Acceptées", value: accepted, icon: CheckCircle2, color: "text-success" },
     { label: "Rejetées", value: rejected, icon: XCircle, color: "text-destructive" },
   ];
+
+  if (isLoading) {
+    return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -52,19 +57,15 @@ export default function StudentDashboard() {
             <p className="text-muted-foreground text-sm text-center py-8">Aucune réclamation pour le moment</p>
           ) : (
             <div className="space-y-3">
-              {complaints.slice(0, 5).map(c => {
-                const subject = getSubjectById(c.subjectId);
-                const teacher = getUserById(c.teacherId);
-                return (
-                  <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm">{subject?.name}</p>
-                      <p className="text-xs text-muted-foreground">Prof. {teacher?.lastName} · Note: {c.grade}/20</p>
-                    </div>
-                    <StatusBadge status={c.status} />
+              {complaints.slice(0, 5).map(c => (
+                <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm">{(c as any).subject?.name}</p>
+                    <p className="text-xs text-muted-foreground">Prof. {(c as any).teacher?.last_name} · Note: {c.grade}/20</p>
                   </div>
-                );
-              })}
+                  <StatusBadge status={c.status as any} />
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

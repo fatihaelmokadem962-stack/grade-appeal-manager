@@ -1,15 +1,20 @@
-import { mockComplaints, mockSubjects, mockUsers, getSubjectById, getUserById } from "@/lib/mock-data";
+import { useComplaints, useProfiles } from "@/hooks/use-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Clock, CheckCircle2, XCircle, Users, BookOpen } from "lucide-react";
+import { FileText, Clock, CheckCircle2, XCircle, Users, BookOpen, Loader2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 export default function AdminDashboard() {
-  const total = mockComplaints.length;
-  const pending = mockComplaints.filter(c => c.status === "pending").length;
-  const accepted = mockComplaints.filter(c => c.status === "accepted").length;
-  const rejected = mockComplaints.filter(c => c.status === "rejected").length;
-  const students = mockUsers.filter(u => u.role === "student").length;
-  const teachers = mockUsers.filter(u => u.role === "teacher").length;
+  const { data: complaints = [], isLoading: loadingC } = useComplaints();
+  const { data: allProfiles = [], isLoading: loadingP } = useProfiles();
+
+  if (loadingC || loadingP) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+
+  const total = complaints.length;
+  const pending = complaints.filter(c => c.status === "pending").length;
+  const accepted = complaints.filter(c => c.status === "accepted").length;
+  const rejected = complaints.filter(c => c.status === "rejected").length;
+  const students = allProfiles.filter((p: any) => p.user_roles?.some((r: any) => r.role === "student")).length;
+  const teachers = allProfiles.filter((p: any) => p.user_roles?.some((r: any) => r.role === "teacher")).length;
 
   const stats = [
     { label: "Réclamations", value: total, icon: FileText, color: "text-primary" },
@@ -26,10 +31,9 @@ export default function AdminDashboard() {
     { name: "Rejetées", value: rejected, color: "hsl(0, 72%, 51%)" },
   ];
 
-  // Complaints by subject
   const subjectMap: Record<string, number> = {};
-  mockComplaints.forEach(c => {
-    const name = getSubjectById(c.subjectId)?.name || "Inconnu";
+  complaints.forEach(c => {
+    const name = (c as any).subject?.name || "Inconnu";
     subjectMap[name] = (subjectMap[name] || 0) + 1;
   });
   const barData = Object.entries(subjectMap).map(([name, count]) => ({ name, count }));

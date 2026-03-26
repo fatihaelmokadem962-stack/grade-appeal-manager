@@ -1,12 +1,14 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { getNotificationsByUser } from "@/lib/mock-data";
+import { useNotifications } from "@/hooks/use-data";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   GraduationCap, LogOut, Bell, Menu, X,
   LayoutDashboard, FileText, Users, BookOpen, UserCog, BarChart3
 } from "lucide-react";
+import { useState } from "react";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -17,11 +19,18 @@ interface AppLayoutProps {
 export default function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { data: notifications = [] } = useNotifications(user?.id);
 
   if (!user) return null;
 
-  const notifications = getNotificationsByUser(user.id);
   const unread = notifications.filter(n => !n.read).length;
+
+  const markAllRead = async () => {
+    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    if (unreadIds.length > 0) {
+      await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+    }
+  };
 
   const navItems = user.role === "student"
     ? [
@@ -46,7 +55,6 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Sidebar */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar text-sidebar-foreground transform transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex flex-col h-full">
           <div className="p-5 flex items-center gap-3 border-b border-sidebar-border">
@@ -93,10 +101,8 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
         </div>
       </aside>
 
-      {/* Overlay */}
       {sidebarOpen && <div className="fixed inset-0 bg-foreground/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      {/* Main */}
       <div className="flex-1 lg:ml-64">
         <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border px-4 lg:px-6 h-14 flex items-center justify-between">
           <button className="lg:hidden p-2 -ml-2" onClick={() => setSidebarOpen(!sidebarOpen)}>
@@ -104,7 +110,7 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
           </button>
           <div />
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative" onClick={markAllRead}>
               <Bell className="w-5 h-5" />
               {unread > 0 && (
                 <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px] bg-destructive text-destructive-foreground">

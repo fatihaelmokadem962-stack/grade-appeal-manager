@@ -1,44 +1,52 @@
 import { useState } from "react";
-import { mockSubjects, mockUsers, mockComplaints } from "@/lib/mock-data";
 import { useAuth } from "@/lib/auth-context";
+import { useSubjects } from "@/hooks/use-data";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, CheckCircle2 } from "lucide-react";
+import { Send, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function NewComplaintForm() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: subjects = [] } = useSubjects();
   const [subjectId, setSubjectId] = useState("");
   const [grade, setGrade] = useState("");
   const [description, setDescription] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const selectedSubject = mockSubjects.find(s => s.id === subjectId);
-  const teacher = selectedSubject ? mockUsers.find(u => u.id === selectedSubject.teacherId) : null;
+  const selectedSubject = subjects.find(s => s.id === subjectId);
+  const teacher = selectedSubject ? (selectedSubject as any).teacher : null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !subjectId || !grade || !description.trim()) return;
+    if (!user || !subjectId || !grade || !description.trim() || !selectedSubject) return;
 
-    mockComplaints.push({
-      id: `c${Date.now()}`,
-      studentId: user.id,
-      subjectId,
-      teacherId: selectedSubject!.teacherId,
+    setIsSubmitting(true);
+    const { error } = await supabase.from("complaints").insert({
+      student_id: user.id,
+      subject_id: subjectId,
+      teacher_id: selectedSubject.teacher_id,
       grade: parseFloat(grade),
       description: description.trim(),
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     });
 
-    toast({ title: "Réclamation envoyée", description: "Votre réclamation a été soumise avec succès." });
-    setSubmitted(true);
+    if (error) {
+      toast({ title: "Erreur", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Réclamation envoyée", description: "Votre réclamation a été soumise avec succès." });
+      queryClient.invalidateQueries({ queryKey: ["complaints"] });
+      setSubmitted(true);
+    }
+    setIsSubmitting(false);
   };
 
   if (submitted) {
@@ -74,7 +82,7 @@ export default function NewComplaintForm() {
               <Select value={subjectId} onValueChange={setSubjectId}>
                 <SelectTrigger><SelectValue placeholder="Sélectionnez une matière" /></SelectTrigger>
                 <SelectContent>
-                  {mockSubjects.map(s => (
+                  {subjects.map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -84,7 +92,7 @@ export default function NewComplaintForm() {
             {teacher && (
               <div className="p-3 rounded-lg bg-muted/50 text-sm">
                 <span className="text-muted-foreground">Enseignant : </span>
-                <span className="font-medium">{teacher.firstName} {teacher.lastName}</span>
+                <span className="font-medium">{teacher.first_name} {teacher.last_name}</span>
               </div>
             )}
 
@@ -98,8 +106,8 @@ export default function NewComplaintForm() {
               <Textarea id="desc" rows={5} placeholder="Décrivez précisément le motif de votre réclamation..." value={description} onChange={e => setDescription(e.target.value)} required />
             </div>
 
-            <Button type="submit" className="w-full gap-2">
-              <Send className="w-4 h-4" /> Soumettre la réclamation
+            <Button type="submit" className="w-full gap-2" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Soumettre la réclamation
             </Button>
           </form>
         </CardContent>

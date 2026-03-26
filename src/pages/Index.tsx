@@ -12,10 +12,19 @@ import ManageStudents from "@/components/admin/ManageStudents";
 import ManageTeachers from "@/components/admin/ManageTeachers";
 import ManageSubjects from "@/components/admin/ManageSubjects";
 import AllComplaints from "@/components/admin/AllComplaints";
+import { Loader2 } from "lucide-react";
 
 export default function Index() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!user) return <LoginPage />;
 
@@ -33,7 +42,6 @@ export default function Index() {
         default: return <TeacherDashboard />;
       }
     }
-    // admin
     switch (activeTab) {
       case "students": return <ManageStudents />;
       case "teachers": return <ManageTeachers />;
