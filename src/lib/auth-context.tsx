@@ -5,7 +5,7 @@ import type { User as SupaUser } from "@supabase/supabase-js";
 export type UserRole = "student" | "teacher" | "admin";
 
 export interface AppUser {
-  id: string; // auth user id
+  id: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -15,10 +15,22 @@ export interface AppUser {
   department?: string | null;
 }
 
+interface RegisterData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: "student" | "teacher";
+  cne?: string;
+  filiere?: string;
+  department?: string;
+}
+
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<string | null>;
+  register: (data: RegisterData) => Promise<string | null>;
   logout: () => Promise<void>;
 }
 
@@ -83,13 +95,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   };
 
+  const register = async (data: RegisterData): Promise<string | null> => {
+    const { data: authData, error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          first_name: data.firstName,
+          last_name: data.lastName,
+          role: data.role,
+        },
+      },
+    });
+
+    if (error) return error.message;
+
+    // Update profile with role-specific fields after the trigger creates it
+    if (authData.user) {
+      const updates: Record<string, string | null> = {};
+      if (data.role === "student") {
+        updates.cne = data.cne || null;
+        updates.filiere = data.filiere || null;
+      } else if (data.role === "teacher") {
+        updates.department = data.department || null;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        // Small delay to ensure trigger has completed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        await supabase.from("profiles").update(updates).eq("user_id", authData.user.id);
+      }
+    }
+
+    return null;
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
