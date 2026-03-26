@@ -4,25 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { GraduationCap, LogIn } from "lucide-react";
+import { GraduationCap, LogIn, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!login(email, password)) {
-      setError("Email ou mot de passe incorrect");
-    }
+    setIsLoading(true);
+    const err = await login(email, password);
+    if (err) setError("Email ou mot de passe incorrect");
+    setIsLoading(false);
   };
 
-  const quickLogin = (email: string) => {
-    setEmail(email);
-    login(email, "demo");
+  const quickLogin = async (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword("password123");
+    setIsLoading(true);
+    const err = await login(demoEmail, "password123");
+    if (err) setError("Erreur de connexion");
+    setIsLoading(false);
   };
 
   return (
@@ -51,21 +57,21 @@ export default function LoginPage() {
                 <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full gap-2">
-                <LogIn className="w-4 h-4" /> Se connecter
+              <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />} Se connecter
               </Button>
             </form>
 
             <div className="mt-6 pt-6 border-t border-border">
-              <p className="text-xs text-muted-foreground text-center mb-3">Accès rapide (démo)</p>
+              <p className="text-xs text-muted-foreground text-center mb-3">Accès rapide (démo) — mot de passe: password123</p>
               <div className="grid grid-cols-3 gap-2">
-                <Button variant="outline" size="sm" onClick={() => quickLogin("ahmed@etu.ma")} className="text-xs">
+                <Button variant="outline" size="sm" onClick={() => quickLogin("ahmed@etu.ma")} className="text-xs" disabled={isLoading}>
                   Étudiant
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => quickLogin("prof.alami@univ.ma")} className="text-xs">
+                <Button variant="outline" size="sm" onClick={() => quickLogin("prof.alami@univ.ma")} className="text-xs" disabled={isLoading}>
                   Enseignant
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => quickLogin("admin@univ.ma")} className="text-xs">
+                <Button variant="outline" size="sm" onClick={() => quickLogin("admin@univ.ma")} className="text-xs" disabled={isLoading}>
                   Admin
                 </Button>
               </div>
