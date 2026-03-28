@@ -38,13 +38,29 @@ export function useProfiles(role?: string) {
   return useQuery({
     queryKey: ["profiles", role],
     queryFn: async () => {
-      let query = supabase.from("profiles").select("*, user_roles(role)").order("last_name");
-      const { data, error } = await query;
-      if (error) throw error;
-      if (role) {
-        return data.filter((p: any) => p.user_roles?.some((r: any) => r.role === role));
+      // Fetch profiles and roles separately since there's no direct FK for PostgREST join
+      const [profilesRes, rolesRes] = await Promise.all([
+        supabase.from("profiles").select("*").order("last_name"),
+        supabase.from("user_roles").select("*"),
+      ]);
+      if (profilesRes.error) throw profilesRes.error;
+      if (rolesRes.error) throw rolesRes.error;
+
+      const rolesByUserId: Record<string, string[]> = {};
+      for (const r of rolesRes.data) {
+        if (!rolesByUserId[r.user_id]) rolesByUserId[r.user_id] = [];
+        rolesByUserId[r.user_id].push(r.role);
       }
-      return data;
+
+      const enriched = profilesRes.data.map((p: any) => ({
+        ...p,
+        user_roles: (rolesByUserId[p.user_id] || []).map(r => ({ role: r })),
+      }));
+
+      if (role) {
+        return enriched.filter((p: any) => p.user_roles.some((r: any) => r.role === role));
+      }
+      return enriched;
     },
   });
 }
