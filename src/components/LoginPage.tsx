@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GraduationCap, LogIn, UserPlus, Loader2, ArrowLeft } from "lucide-react";
 
-type AuthView = "login" | "register";
+type AuthView = "login" | "register" | "admin-login";
 
 export default function LoginPage() {
   const { login, register } = useAuth();
@@ -111,23 +111,23 @@ export default function LoginPage() {
         <Card className="glass-card">
           <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
-              {view === "register" && (
+              {(view === "register" || view === "admin-login") && (
                 <Button variant="ghost" size="icon" onClick={() => switchView("login")} className="shrink-0">
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
               )}
               <h2 className="text-xl font-semibold text-center flex-1">
-                {view === "login" ? "Connexion" : "Créer un compte"}
+                {view === "login" ? "Connexion" : view === "admin-login" ? "Connexion Administrateur" : "Créer un compte"}
               </h2>
             </div>
           </CardHeader>
           <CardContent>
-            {view === "login" ? (
+            {(view === "login" || view === "admin-login") ? (
               <>
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="votre@email.ma" value={email} onChange={e => setEmail(e.target.value)} required />
+                    <Input id="email" type="email" placeholder={view === "admin-login" ? "admin@univ.ma" : "votre@email.ma"} value={email} onChange={e => setEmail(e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Mot de passe</Label>
@@ -135,33 +135,43 @@ export default function LoginPage() {
                   </div>
                   {error && <p className="text-sm text-destructive">{error}</p>}
                   <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />} Se connecter
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                    {view === "admin-login" ? "Connexion Admin" : "Se connecter"}
                   </Button>
                 </form>
 
-                <div className="mt-4 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Pas encore de compte ?{" "}
-                    <button onClick={() => switchView("register")} className="text-primary font-medium hover:underline">
-                      S'inscrire
-                    </button>
-                  </p>
-                </div>
+                {view === "login" && (
+                  <>
+                    <div className="mt-4 text-center space-y-2">
+                      <p className="text-sm text-muted-foreground">
+                        Pas encore de compte ?{" "}
+                        <button onClick={() => switchView("register")} className="text-primary font-medium hover:underline">
+                          S'inscrire
+                        </button>
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <button onClick={() => switchView("admin-login")} className="text-primary font-medium hover:underline">
+                          Accès Administrateur
+                        </button>
+                      </p>
+                    </div>
 
-                <div className="mt-6 pt-6 border-t border-border">
-                  <p className="text-xs text-muted-foreground text-center mb-3">Accès rapide (démo) — mot de passe: password123</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    <Button variant="outline" size="sm" onClick={() => quickLogin("ahmed@etu.ma")} className="text-xs" disabled={isLoading}>
-                      Étudiant
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => quickLogin("prof.alami@univ.ma")} className="text-xs" disabled={isLoading}>
-                      Enseignant
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => quickLogin("admin@univ.ma")} className="text-xs" disabled={isLoading}>
-                      Admin
-                    </Button>
-                  </div>
-                </div>
+                    <div className="mt-6 pt-6 border-t border-border">
+                      <p className="text-xs text-muted-foreground text-center mb-3">Accès rapide (démo) — mot de passe: password123</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button variant="outline" size="sm" onClick={() => quickLogin("ahmed@etu.ma")} className="text-xs" disabled={isLoading}>
+                          Étudiant
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => quickLogin("prof.alami@univ.ma")} className="text-xs" disabled={isLoading}>
+                          Enseignant
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => quickLogin("admin@univ.ma")} className="text-xs" disabled={isLoading}>
+                          Admin
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             ) : (
               <>
