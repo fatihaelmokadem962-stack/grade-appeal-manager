@@ -5,10 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   GraduationCap, LogOut, Bell, Menu, X,
-  LayoutDashboard, FileText, Users, BookOpen, UserCog, BarChart3
+  LayoutDashboard, FileText, Users, BookOpen, UserCog, BarChart3, CheckCheck
 } from "lucide-react";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -19,6 +26,7 @@ interface AppLayoutProps {
 export default function AppLayout({ children, activeTab, onTabChange }: AppLayoutProps) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const queryClient = useQueryClient();
   const { data: notifications = [] } = useNotifications(user?.id);
 
   if (!user) return null;
@@ -29,6 +37,7 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
     const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
     if (unreadIds.length > 0) {
       await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     }
   };
 
@@ -110,14 +119,44 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
           </button>
           <div />
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative" onClick={markAllRead}>
-              <Bell className="w-5 h-5" />
-              {unread > 0 && (
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px] bg-destructive text-destructive-foreground">
-                  {unread}
-                </Badge>
-              )}
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="w-5 h-5" />
+                  {unread > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px] bg-destructive text-destructive-foreground">
+                      {unread}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                  <h3 className="font-semibold text-sm">Notifications</h3>
+                  {unread > 0 && (
+                    <Button variant="ghost" size="sm" onClick={markAllRead} className="text-xs gap-1 h-7">
+                      <CheckCheck className="w-3 h-3" /> Tout lire
+                    </Button>
+                  )}
+                </div>
+                <ScrollArea className="max-h-72">
+                  {notifications.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-6">Aucune notification</p>
+                  ) : (
+                    <div className="divide-y divide-border">
+                      {notifications.slice(0, 20).map(n => (
+                        <div key={n.id} className={`px-4 py-3 text-sm ${!n.read ? "bg-muted/50" : ""}`}>
+                          <p className={!n.read ? "font-medium" : "text-muted-foreground"}>{n.message}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(n.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
         </header>
         <main className="p-4 lg:p-6 animate-fade-in">
