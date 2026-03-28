@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GraduationCap, LogIn, UserPlus, Loader2, ArrowLeft } from "lucide-react";
 
-type AuthView = "login" | "register";
+type AuthView = "login" | "register" | "admin-login";
 
 export default function LoginPage() {
   const { login, register } = useAuth();
