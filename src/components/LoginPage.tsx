@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [role, setRole] = useState<"student" | "teacher">("student");
+  const [role, setRole] = useState<"student" | "teacher" | "admin">("student");
   const [cne, setCne] = useState("");
   const [filiere, setFiliere] = useState("");
   const [department, setDepartment] = useState("");
@@ -178,13 +178,14 @@ export default function LoginPage() {
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-2">
                     <Label>Rôle</Label>
-                    <Select value={role} onValueChange={(v: "student" | "teacher") => setRole(v)}>
+                    <Select value={role} onValueChange={(v: "student" | "teacher" | "admin") => setRole(v)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="student">Étudiant</SelectItem>
                         <SelectItem value="teacher">Enseignant</SelectItem>
+                        <SelectItem value="admin">Administrateur</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

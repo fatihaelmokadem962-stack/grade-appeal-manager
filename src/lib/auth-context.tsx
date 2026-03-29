@@ -20,7 +20,7 @@ interface RegisterData {
   password: string;
   firstName: string;
   lastName: string;
-  role: "student" | "teacher";
+  role: "student" | "teacher" | "admin";
   cne?: string;
   filiere?: string;
   department?: string;
