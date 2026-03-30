@@ -178,14 +178,13 @@ export default function LoginPage() {
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-2">
                     <Label>Rôle</Label>
-                    <Select value={role} onValueChange={(v: "student" | "teacher" | "admin") => setRole(v)}>
+                    <Select value={role} onValueChange={(v: "student" | "teacher") => setRole(v)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="student">Étudiant</SelectItem>
                         <SelectItem value="teacher">Enseignant</SelectItem>
-                        <SelectItem value="admin">Administrateur</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
