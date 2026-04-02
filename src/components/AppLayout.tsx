@@ -27,11 +27,12 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { data: notifications = [] } = useNotifications(user?.id);
+  const { data: notifications } = useNotifications(user?.id);
+  const safeNotifications = notifications ?? [];
 
   if (!user) return null;
 
-  const unread = notifications.filter(n => !n.read).length;
+  const unread = safeNotifications.filter(n => !n.read).length;
 
   const markAllRead = async () => {
     const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
