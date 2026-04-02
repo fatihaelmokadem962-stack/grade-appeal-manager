@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useSubjects } from "@/hooks/use-data";
 import { supabase } from "@/integrations/supabase/client";
+import { addToOfflineQueue } from "@/lib/offline-cache";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,25 +28,36 @@ export default function NewComplaintForm() {
   const selectedSubject = subjects.find(s => s.id === subjectId);
   const teacher = selectedSubject ? (selectedSubject as any).teacher : null;
 
+  const isOnline = useNetworkStatus();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !subjectId || !grade || !description.trim() || !selectedSubject) return;
 
     setIsSubmitting(true);
-    const { error } = await supabase.from("complaints").insert({
+
+    const complaintData = {
       student_id: user.id,
       subject_id: subjectId,
       teacher_id: selectedSubject.teacher_id,
       grade: parseFloat(grade),
       description: description.trim(),
-    });
+    };
 
-    if (error) {
-      toast({ title: "Erreur", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Réclamation envoyée", description: "Votre réclamation a été soumise avec succès." });
+    if (!isOnline) {
+      addToOfflineQueue({ table: "complaints", type: "insert", data: complaintData });
+      toast({ title: "Sauvegardé hors ligne", description: "Votre réclamation sera envoyée dès le retour d'Internet." });
       queryClient.invalidateQueries({ queryKey: ["complaints"] });
       setSubmitted(true);
+    } else {
+      const { error } = await supabase.from("complaints").insert(complaintData);
+      if (error) {
+        toast({ title: "Erreur", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Réclamation envoyée", description: "Votre réclamation a été soumise avec succès." });
+        queryClient.invalidateQueries({ queryKey: ["complaints"] });
+        setSubmitted(true);
+      }
     }
     setIsSubmitting(false);
   };
