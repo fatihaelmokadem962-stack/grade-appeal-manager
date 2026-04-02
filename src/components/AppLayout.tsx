@@ -35,7 +35,7 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
   const unread = safeNotifications.filter(n => !n.read).length;
 
   const markAllRead = async () => {
-    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    const unreadIds = safeNotifications.filter(n => !n.read).map(n => n.id);
     if (unreadIds.length > 0) {
       await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
