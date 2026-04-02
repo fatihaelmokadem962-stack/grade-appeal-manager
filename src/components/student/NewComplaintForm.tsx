@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useSubjects } from "@/hooks/use-data";
 import { supabase } from "@/integrations/supabase/client";
 import { addToOfflineQueue } from "@/lib/offline-cache";
-import { useNetworkStatus } from "@/hooks/use-network-status";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
