@@ -27,14 +27,15 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { data: notifications = [] } = useNotifications(user?.id);
+  const { data: notifications } = useNotifications(user?.id);
+  const safeNotifications = notifications ?? [];
 
   if (!user) return null;
 
-  const unread = notifications.filter(n => !n.read).length;
+  const unread = safeNotifications.filter(n => !n.read).length;
 
   const markAllRead = async () => {
-    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    const unreadIds = safeNotifications.filter(n => !n.read).map(n => n.id);
     if (unreadIds.length > 0) {
       await supabase.from("notifications").update({ read: true }).in("id", unreadIds);
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -140,11 +141,11 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
                   )}
                 </div>
                 <ScrollArea className="max-h-72">
-                  {notifications.length === 0 ? (
+                  {safeNotifications.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-6">Aucune notification</p>
                   ) : (
                     <div className="divide-y divide-border">
-                      {notifications.slice(0, 20).map(n => (
+                      {safeNotifications.slice(0, 20).map(n => (
                         <div key={n.id} className={`px-4 py-3 text-sm ${!n.read ? "bg-muted/50" : ""}`}>
                           <p className={!n.read ? "font-medium" : "text-muted-foreground"}>{n.message}</p>
                           <p className="text-xs text-muted-foreground mt-1">
