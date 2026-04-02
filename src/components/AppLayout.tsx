@@ -141,11 +141,11 @@ export default function AppLayout({ children, activeTab, onTabChange }: AppLayou
                   )}
                 </div>
                 <ScrollArea className="max-h-72">
-                  {notifications.length === 0 ? (
+                  {safeNotifications.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-6">Aucune notification</p>
                   ) : (
                     <div className="divide-y divide-border">
-                      {notifications.slice(0, 20).map(n => (
+                      {safeNotifications.slice(0, 20).map(n => (
                         <div key={n.id} className={`px-4 py-3 text-sm ${!n.read ? "bg-muted/50" : ""}`}>
                           <p className={!n.read ? "font-medium" : "text-muted-foreground"}>{n.message}</p>
                           <p className="text-xs text-muted-foreground mt-1">
