@@ -11,7 +11,7 @@ function createCachedQuery<T>(key: string[], queryFn: () => Promise<T>, enabled 
       return data;
     },
     enabled,
-    initialData: () => getCachedData<T>(key.join("_")) as Awaited<T> | undefined,
+    initialData: () => getCachedData<T>(key.join("_")) as Awaited<T> | undefined ?? undefined,
     retry: (failureCount, error) => {
       // Don't retry if offline
       if (!navigator.onLine) return false;
