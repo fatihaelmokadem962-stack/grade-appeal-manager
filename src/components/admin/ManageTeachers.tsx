@@ -47,7 +47,7 @@ export default function ManageTeachers() {
       if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
       else toast({ title: "Enseignant ajouté" });
     }
-    queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    await queryClient.invalidateQueries({ queryKey: ["profiles"] });
     setDialogOpen(false);
     setSaving(false);
   };

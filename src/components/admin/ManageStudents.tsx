@@ -53,7 +53,7 @@ export default function ManageStudents() {
         toast({ title: "Étudiant ajouté" });
       }
     }
-    queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    await queryClient.invalidateQueries({ queryKey: ["profiles"] });
     setDialogOpen(false);
     setSaving(false);
   };

@@ -42,7 +42,7 @@ export default function ManageSubjects() {
       if (error) toast({ title: "Erreur", description: error.message, variant: "destructive" });
       else toast({ title: "Matière ajoutée" });
     }
-    queryClient.invalidateQueries({ queryKey: ["subjects"] });
+    await queryClient.invalidateQueries({ queryKey: ["subjects"] });
     setDialogOpen(false);
     setSaving(false);
   };
